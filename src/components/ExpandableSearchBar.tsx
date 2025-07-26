@@ -37,7 +37,7 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
 }) => {
   const { userProfile } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [query, setQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -190,7 +190,7 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setQuery(value);
+    setSearchQuery(value);
     debouncedSearch(value);
   };
 
@@ -237,28 +237,28 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
 
   // Handle result click
   const handleResultClick = (article: Article) => {
-    saveRecentSearch(query);
+    saveRecentSearch(searchQuery);
     onResultClick?.();
     setIsExpanded(false);
-    setQuery("");
+    setSearchQuery("");
     setResults([]);
   };
 
   // Handle recent search click
   const handleRecentSearchClick = (searchQuery: string) => {
-    setQuery(searchQuery);
+    setSearchQuery(searchQuery);
     debouncedSearch(searchQuery);
   };
 
   // Handle tag click
   const handleTagClick = (tag: string) => {
-    setQuery(tag);
+    setSearchQuery(tag);
     debouncedSearch(tag);
   };
 
   // Clear search
   const clearSearch = () => {
-    setQuery("");
+    setSearchQuery("");
     setResults([]);
   };
 
@@ -323,13 +323,13 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
         <input
           ref={searchInputRef}
           type="text"
-          value={query}
+          value={searchQuery}
           onChange={handleSearchChange}
           placeholder={placeholder}
           className="flex-1 bg-transparent outline-none text-gray-700 placeholder-gray-500"
           
         />
-        {query && (
+        {searchQuery && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -360,7 +360,7 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
         }}
       >
         <div className="p-4 max-h-80 overflow-y-auto">
-          {!query && (
+          {!searchQuery && (
             <div className="space-y-4">
               {/* Recent Searches */}
               {recentSearches.length > 0 && (
@@ -411,7 +411,7 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
           )}
 
           {/* Search Results */}
-          {query && (
+          {searchQuery && (
             <div>
               {loading ? (
                 <div className="flex items-center justify-center py-6">
@@ -442,10 +442,10 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
                         )}
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-1">
-                            {highlightSearchTerms(article.title, query)}
+                            {highlightSearchTerms(article.title, searchQuery)}
                           </h3>
                           <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                            {highlightSearchTerms(article.excerpt, query)}
+                            {highlightSearchTerms(article.excerpt, searchQuery)}
                           </p>
                           <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
                             <span>By {article.authorName}</span>
@@ -460,7 +460,7 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
                                   key={tag}
                                   className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full"
                                 >
-                                  {highlightSearchTerms(tag, query)}
+                                  {highlightSearchTerms(tag, searchQuery)}
                                 </span>
                               ))}
                             </div>
