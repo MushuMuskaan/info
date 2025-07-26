@@ -88,13 +88,16 @@ export const RemovedWritersPage: React.FC = () => {
     });
 
     // Listen to all articles for real-time count updates (including hidden ones for admin view)
-    const articlesQuery = query(collection(firestore, "articles"));
+    const articlesQuery = query(
+      collection(firestore, "articles"),
+      where("status", "==", "hidden")
+    );
 
     const articlesUnsubscribe = onSnapshot(articlesQuery, (snapshot) => {
       articlesData = {};
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.authorId && (data.status === "published" || data.status === "hidden")) {
+        if (data.authorId && data.status === "hidden") {
           articlesData[data.authorId] = (articlesData[data.authorId] || 0) + 1;
         }
       });
@@ -132,18 +135,29 @@ export const RemovedWritersPage: React.FC = () => {
 
     setProcessingId(writer.id);
     try {
-      // First, permanently delete all articles by this writer
+      // First, restore all hidden articles by this writer to their original status
       const articlesQuery = query(
         collection(firestore, "articles"),
-        where("authorId", "==", writer.uid)
+        where("authorId", "==", writer.uid),
+        where("status", "==", "hidden")
       );
 
       const articlesSnapshot = await getDocs(articlesQuery);
-      const deletePromises = articlesSnapshot.docs.map(doc =>
-        deleteDoc(doc.ref)
+      const restorePromises = articlesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return updateDoc(doc.ref, {
+          status: data.originalStatus || "draft", // Restore to original status or draft
+          hiddenAt: null,
+          hiddenBy: null,
+          hiddenReason: null,
+          originalStatus: null,
+          restoredAt: serverTimestamp(),
+          restoredBy: userProfile.uid
+        });
+      }
       );
 
-      await Promise.all(deletePromises);
+      await Promise.all(restorePromises);
 
       const userRef = doc(firestore, "users", writer.id);
 
@@ -163,7 +177,7 @@ export const RemovedWritersPage: React.FC = () => {
         type: "writer_privileges_restored",
         title: "InfoWriter Privileges Restored! 🎉",
         message:
-          "Your InfoWriter privileges have been restored by an administrator. You can now create and publish articles again. Note: All previous articles have been removed for a fresh start.",
+          "Your InfoWriter privileges have been restored by an administrator. You can now create and publish articles again. Your previous articles have been restored.",
         read: false,
         createdAt: serverTimestamp(),
         actionUrl: "/dashboard",

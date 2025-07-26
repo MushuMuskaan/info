@@ -135,7 +135,7 @@ export const ActiveWritersPage: React.FC = () => {
       // Store previous role for tracking
       const previousRoles = [writer.uid]; // Track that they were an infowriter
 
-      // Update user role back to regular user
+      // Update user role back to regular user and hide all their articles
       await updateDoc(userRef, {
         role: "user",
         previousRoles: previousRoles,
@@ -143,13 +143,34 @@ export const ActiveWritersPage: React.FC = () => {
         privilegesRemovedBy: userProfile.uid,
       });
 
+      // Hide all articles by this writer by changing their status to "hidden"
+      const articlesQuery = query(
+        collection(firestore, "articles"),
+        where("authorId", "==", writer.uid)
+      );
+
+      const articlesSnapshot = await getDocs(articlesQuery);
+      const updatePromises = articlesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        // Hide all articles regardless of current status
+        return updateDoc(doc.ref, {
+          status: "hidden",
+          hiddenAt: serverTimestamp(),
+          hiddenBy: userProfile.uid,
+          hiddenReason: "InfoWriter privileges removed",
+          originalStatus: data.status // Track original status for potential restoration
+        });
+      });
+
+      await Promise.all(updatePromises);
+
       // Create notification for the user
       await addDoc(collection(firestore, "notifications"), {
         userId: writer.uid,
         type: "writer_privileges_removed",
         title: "InfoWriter Privileges Updated",
         message:
-          "Your InfoWriter privileges have been updated by an administrator. Your existing articles remain published, but you can no longer create new articles. Contact support if you have questions.",
+          "Your InfoWriter privileges have been updated by an administrator. Your articles have been hidden from public view, but you can no longer create new articles. Contact support if you have questions.",
         read: false,
         createdAt: serverTimestamp(),
         actionUrl: "/profile",

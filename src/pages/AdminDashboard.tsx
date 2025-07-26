@@ -71,7 +71,8 @@ export const AdminDashboard: React.FC = () => {
 
     // Articles subscription (Admins can see all articles including hidden ones)
     const articlesQuery = query(
-      collection(firestore, "articles")
+      collection(firestore, "articles"),
+      where("status", "==", "published")
     );
 
     const unsubscribeArticles = onSnapshot(articlesQuery, (snapshot) => {
@@ -82,8 +83,8 @@ export const AdminDashboard: React.FC = () => {
       snapshot.forEach((doc) => {
         const data = doc.data();
 
-        // For admin dashboard, show published and hidden articles (not drafts)
-        if (data.status !== "published" && data.status !== "hidden") {
+        // For admin dashboard, only show published articles (not hidden or drafts)
+        if (data.status !== "published") {
           return;
         }
 

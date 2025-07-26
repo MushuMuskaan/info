@@ -72,6 +72,11 @@ export const InfoWriterDashboard: React.FC = () => {
       snapshot.forEach((doc) => {
         const data = doc.data();
 
+        // Only show published articles - hidden articles should never appear
+        if (data.status !== "published") {
+          return;
+        }
+
         publishedArticles.push({
           id: doc.id,
           ...data,

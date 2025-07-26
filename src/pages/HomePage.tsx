@@ -90,8 +90,8 @@ export const HomePage: React.FC = () => {
         snapshot.forEach((doc) => {
           const data = doc.data();
 
-          // For non-admin users, exclude hidden articles (double-check)
-          if (userProfile?.role !== "admin" && data.status === "hidden") {
+          // Only show published articles on homepage - hidden articles should never appear
+          if (data.status !== "published") {
             return;
           }
 

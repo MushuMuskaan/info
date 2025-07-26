@@ -55,6 +55,11 @@ export const UserDashboard: React.FC = () => {
       snapshot.forEach((doc) => {
         const data = doc.data();
 
+        // Only show published articles - hidden articles should never appear
+        if (data.status !== "published") {
+          return;
+        }
+
         const article = {
           id: doc.id,
           ...data,
