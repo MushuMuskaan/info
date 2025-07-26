@@ -138,7 +138,7 @@ export const ExpandableSearchBar: React.FC<ExpandableSearchBarProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsExpanded(false);
-        setQuery("");
+        setSearchQuery("");
         setResults([]);
       }
     };
