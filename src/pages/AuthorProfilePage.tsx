@@ -22,7 +22,7 @@ import { firestore } from "../lib/firebase";
 
 export const AuthorProfilePage: React.FC = () => {
   const { authorId } = useParams<{ authorId: string }>();
-  const { userProfile: currentUser, loading: authLoading } = useAuth();
+  const { userProfile, loading: authLoading } = useAuth();
   const [authorProfile, setAuthorProfile] = useState<UserProfile | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,26 +56,28 @@ export const AuthorProfilePage: React.FC = () => {
 
     setArticlesLoading(true);
 
-    // Query for published articles by this author - using pattern from InfoWriterDashboard
-    const articlesQuery = query(
-      collection(firestore, "articles"),
-      where("authorId", "==", authorId)
-    );
+    // Query for articles by this author - filter by status based on user role
+    let articlesQuery;
+    if (userProfile?.role === "admin") {
+      // Admin can see published and hidden articles
+      articlesQuery = query(
+        collection(firestore, "articles"),
+        where("authorId", "==", authorId),
+        where("status", "in", ["published", "hidden"])
+      );
+    } else {
+      // Non-admin users can only see published articles
+      articlesQuery = query(
+        collection(firestore, "articles"),
+        where("authorId", "==", authorId),
+        where("status", "==", "published")
+      );
+    }
 
     const unsubscribe = onSnapshot(articlesQuery, (snapshot) => {
       const authorArticles: Article[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-
-        // For non-admin users, only show published articles
-        if (userProfile?.role !== "admin" && data.status !== "published") {
-          return;
-        }
-
-        // For admin users, show both published and hidden articles (not drafts)
-        if (userProfile?.role === "admin" && data.status !== "published" && data.status !== "hidden") {
-          return;
-        }
 
         authorArticles.push({
           id: doc.id,
@@ -102,7 +104,7 @@ export const AuthorProfilePage: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [authorId]);
+  }, [authorId, userProfile?.role]);
 
   const getSocialIcon = (platform: string) => {
     switch (platform) {
@@ -261,12 +263,12 @@ export const AuthorProfilePage: React.FC = () => {
                   key={article.id}
                   article={article}
                   variant="default"
-                  showActions={!!currentUser} // Only show actions if user is authenticated
+                  showActions={!!userProfile} // Only show actions if user is authenticated
                 />
               ))}
             </div>
 
-            {!currentUser && articles.length > 0 && (
+            {!userProfile && articles.length > 0 && (
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-700 text-center">
                   <Link to="/auth" className="font-medium hover:underline">

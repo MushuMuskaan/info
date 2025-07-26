@@ -95,7 +95,7 @@ export const getUserNotifications = async (
         id: doc.id,
         ...data,
         createdAt: data.createdAt.toDate(),
-        readAt: data.readAt?.toDate(),
+        readAt: data.readAt ? data.readAt.toDate() : undefined,
       } as AppNotification;
     });
   } catch (error) {
@@ -125,7 +125,7 @@ export const subscribeToUserNotifications = (
           id: doc.id,
           ...data,
           createdAt: data.createdAt.toDate(),
-          readAt: data.readAt?.toDate(),
+          readAt: data.readAt ? data.readAt.toDate() : undefined,
         } as AppNotification;
       });
 

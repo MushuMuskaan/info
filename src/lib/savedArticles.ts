@@ -118,9 +118,12 @@ export const getUserSavedArticles = async (
       return {
         ...data,
         savedAt: data.savedAt.toDate(),
-        articleUpdatedAt:
-          data.articleUpdatedAt?.toDate() || data.savedAt.toDate(),
-        articlePublishedAt: data.articlePublishedAt?.toDate(),
+        articleUpdatedAt: data.articleUpdatedAt 
+          ? data.articleUpdatedAt.toDate() 
+          : data.savedAt.toDate(),
+        articlePublishedAt: data.articlePublishedAt 
+          ? data.articlePublishedAt.toDate() 
+          : undefined,
       } as SavedArticle;
     });
   } catch (error) {
@@ -190,9 +193,12 @@ export const subscribeToUserSavedArticles = (
         return {
           ...data,
           savedAt: data.savedAt.toDate(),
-          articleUpdatedAt:
-            data.articleUpdatedAt?.toDate() || data.savedAt.toDate(),
-          articlePublishedAt: data.articlePublishedAt?.toDate(),
+          articleUpdatedAt: data.articleUpdatedAt 
+            ? data.articleUpdatedAt.toDate() 
+            : data.savedAt.toDate(),
+          articlePublishedAt: data.articlePublishedAt 
+            ? data.articlePublishedAt.toDate() 
+            : undefined,
         } as SavedArticle;
       });
 
