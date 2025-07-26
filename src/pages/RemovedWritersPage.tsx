@@ -320,13 +320,9 @@ export const RemovedWritersPage: React.FC = () => {
                         <div className="flex items-center">
                           <FileText className="h-4 w-4 mr-2 text-red-600" />
                           {writer.articleCount > 0 ? (
-                            <Link
-                              to={`/author/${writer.uid}`}
-                              className="text-sm font-medium text-red-600 hover:text-red-800 hover:underline transition-colors cursor-pointer"
-                              title={`View ${writer.articleCount} articles by ${writer.displayName} (Admin Only)`}
-                            >
-                              {writer.articleCount}
-                            </Link>
+                            <span className="text-sm font-medium text-red-600">
+                              {writer.articleCount} (Hidden)
+                            </span>
                           ) : (
                             <span className="text-sm font-medium text-gray-500">
                               {writer.articleCount}
