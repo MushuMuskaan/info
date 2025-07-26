@@ -43,7 +43,8 @@ export const UserDashboard: React.FC = () => {
     if (!userProfile) return;
 
     const articlesQuery = query(
-      collection(firestore, "articles")
+      collection(firestore, "articles"),
+      where("status", "==", "published")
     );
 
     const unsubscribe = onSnapshot(articlesQuery, (snapshot) => {
@@ -53,16 +54,6 @@ export const UserDashboard: React.FC = () => {
 
       snapshot.forEach((doc) => {
         const data = doc.data();
-
-        // For non-admin users, only show published articles (skip hidden and draft)
-        if (userProfile?.role !== "admin" && data.status !== "published") {
-          return;
-        }
-
-        // For admin users, show published articles (they can see hidden ones in admin panel)
-        if (userProfile?.role === "admin" && data.status !== "published") {
-          return;
-        }
 
         const article = {
           id: doc.id,

@@ -220,7 +220,7 @@ export const getArticle = async (id: string): Promise<Article | null> => {
       ...data,
       createdAt: data.createdAt.toDate(),
       updatedAt: data.updatedAt.toDate(),
-      publishedAt: data.publishedAt?.toDate(),
+      publishedAt: data.publishedAt ? data.publishedAt.toDate() : undefined,
     } as Article;
   }
 
@@ -278,7 +278,7 @@ export const getArticles = async (
       ...data,
       createdAt: data.createdAt.toDate(),
       updatedAt: data.updatedAt.toDate(),
-      publishedAt: data.publishedAt?.toDate(),
+      publishedAt: data.publishedAt ? data.publishedAt.toDate() : undefined,
     } as Article;
   });
 
@@ -357,7 +357,7 @@ export const getVisibleArticles = async (
       ...data,
       createdAt: data.createdAt.toDate(),
       updatedAt: data.updatedAt.toDate(),
-      publishedAt: data.publishedAt?.toDate(),
+      publishedAt: data.publishedAt ? data.publishedAt.toDate() : undefined,
     } as Article;
   });
 

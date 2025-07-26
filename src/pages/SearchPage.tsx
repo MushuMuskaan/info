@@ -27,7 +27,7 @@ export const SearchPage: React.FC = () => {
   const loadSearchData = (): (() => void) => {
     setLoading(true);
 
-    // Create optimized real-time listener for articles
+    // Create optimized real-time listener for published articles with pagination
     const articlesQuery = query(
       collection(firestore, "articles"),
       where("status", "==", "published"),
@@ -42,11 +42,6 @@ export const SearchPage: React.FC = () => {
 
         snapshot.forEach((doc) => {
           const data = doc.data();
-
-          // For non-admin users, exclude hidden articles
-          if (userProfile?.role !== "admin" && data.status === "hidden") {
-            return;
-          }
 
           publishedArticles.push({
             id: doc.id,

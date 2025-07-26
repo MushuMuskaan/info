@@ -61,20 +61,16 @@ export const InfoWriterDashboard: React.FC = () => {
   useEffect(() => {
     if (!userProfile) return;
 
-    // Published articles subscription (excluding hidden articles for InfoWriters)
+    // Published articles subscription
     const publishedQuery = query(
-      collection(firestore, "articles")
+      collection(firestore, "articles"),
+      where("status", "==", "published")
     );
 
     const unsubscribePublished = onSnapshot(publishedQuery, (snapshot) => {
       const publishedArticles: Article[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-
-        // For InfoWriters, only show published articles (exclude hidden ones)
-        if (data.status !== "published") {
-          return;
-        }
 
         publishedArticles.push({
           id: doc.id,
