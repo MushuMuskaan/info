@@ -5,7 +5,7 @@ import { onSnapshot, collection, query, where, orderBy, limit } from "firebase/f
 import { firestore } from "../lib/firebase";
 import { ExpandableSearchBar } from "../components/ExpandableSearchBar";
 import { useAuth } from "../hooks/useAuth";
-import { BookOpen, Loader2, ArrowLeft, FileText, Plus } from "lucide-react";
+import { BookOpen, Loader2, ArrowLeft, FileText, Plus, Folder, Tag } from "lucide-react";
 import toast from "react-hot-toast";
 import { ArticleCard } from "../components/ArticleCard";
 

@@ -57,22 +57,12 @@ export const AuthorProfilePage: React.FC = () => {
     setArticlesLoading(true);
 
     // Query for articles by this author - filter by status based on user role
-    let articlesQuery;
-    if (userProfile?.role === "admin") {
-      // Admin can see published and hidden articles
-      articlesQuery = query(
-        collection(firestore, "articles"),
-        where("authorId", "==", authorId),
-        where("status", "in", ["published", "hidden"])
-      );
-    } else {
-      // Non-admin users can only see published articles
-      articlesQuery = query(
-        collection(firestore, "articles"),
-        where("authorId", "==", authorId),
-        where("status", "==", "published")
-      );
-    }
+    // Only show published articles for all users (including admin)
+    const articlesQuery = query(
+      collection(firestore, "articles"),
+      where("authorId", "==", authorId),
+      where("status", "==", "published")
+    );
 
     const unsubscribe = onSnapshot(articlesQuery, (snapshot) => {
       const authorArticles: Article[] = [];

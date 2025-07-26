@@ -316,10 +316,8 @@ export const getVisibleArticles = async (
   let q = query(collection(firestore, "articles"));
   const filters = [];
 
-  // For non-admin users, exclude hidden articles
-  if (userRole !== "admin") {
-    filters.push(["status", "!=", "hidden"]);
-  }
+  // Exclude hidden articles for all users (including admin in general views)
+  filters.push(["status", "!=", "hidden"]);
 
   if (options.status) {
     filters.push(["status", "==", options.status]);

@@ -62,8 +62,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         snapshot.forEach((doc) => {
           const data = doc.data();
 
-          // For non-admin users, exclude hidden articles
-          if (userProfile?.role !== "admin" && data.status === "hidden") {
+          // Only show published articles in search - hidden articles should never appear
+          if (data.status !== "published") {
             return;
           }
 
