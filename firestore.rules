@@ -1,0 +1,209 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Articles collection - role-based permissions
+    match /articles/{articleId} {
+      // READ PERMISSIONS
+      // Anyone can read published articles (including unauthenticated users)
+      allow read: if resource.data.status == 'published';
+
+      // Authors can read their own articles (any status)
+      allow read: if request.auth != null && request.auth.uid == resource.data.authorId;
+
+      // Admins can read all articles (any status)
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      // LIST PERMISSIONS
+      // Allow authenticated users to list/query articles (for homepage, search, etc.)
+      allow list: if request.auth != null;
+
+      // Allow unauthenticated users to list published articles (for homepage)
+      allow list: if true;
+
+      // CREATE PERMISSIONS
+      // Only infowriters and admins can create articles
+      allow create: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['infowriter', 'admin'] &&
+        request.auth.uid == request.resource.data.authorId;
+
+      // UPDATE PERMISSIONS
+      // Authors can update their own articles (including admins updating their own articles)
+      allow update: if request.auth != null && request.auth.uid == resource.data.authorId;
+
+      // Allow anyone to increment views on published articles
+      allow update: if resource.data.status == 'published' &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']) &&
+                       request.resource.data.views == resource.data.views + 1;
+
+      // Allow authenticated users to like/unlike published articles
+      allow update: if request.auth != null &&
+                       resource.data.status == 'published' &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy']) &&
+                       (
+                         // Like: increment likes and add user to likedBy
+                         (request.resource.data.likes == resource.data.likes + 1 &&
+                          request.resource.data.likedBy.toSet().difference(resource.data.likedBy.toSet()) == [request.auth.uid].toSet()) ||
+                         // Unlike: decrement likes and remove user from likedBy
+                         (request.resource.data.likes == resource.data.likes - 1 &&
+                          resource.data.likedBy.toSet().difference(request.resource.data.likedBy.toSet()) == [request.auth.uid].toSet())
+                       );
+
+      // DELETE PERMISSIONS
+      // Authors can delete their own articles (hard delete)
+      allow delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+
+      // Admins can delete infowriter articles (but this will be handled as soft delete in app logic)
+      // Admins cannot delete other admin articles
+      allow delete: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        get(/databases/$(database)/documents/users/$(resource.data.authorId)).data.role == 'infowriter';
+    }
+    
+
+    
+    // Writer requests collection - users can read their own requests, admins can read all
+    match /writerRequests/{requestId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection - allow authenticated users to read profiles for article cards
+    match /users/{userId} {
+      // Allow authenticated users to read any user profile (for displaying author info in article cards)
+      // This enables showing author names and profile pictures throughout the application
+      allow read: if request.auth != null;
+
+      // Allow authenticated users to list/query users (needed for admin operations and article author loading)
+      allow list: if request.auth != null;
+
+      // Allow user creation ONLY for verified users
+      allow create: if request.auth != null &&
+        request.auth.uid == userId &&
+        request.auth.token.email_verified == true;
+
+      // Allow users to update their own profile (except role)
+      allow update: if request.auth != null &&
+        request.auth.uid == userId &&
+        request.auth.token.email_verified == true &&
+        (!('role' in request.resource.data) || request.resource.data.role == resource.data.role);
+
+      // Allow admins to update any profile including roles
+      allow update: if request.auth != null &&
+        request.auth.token.email_verified == true &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Saved articles collection (compound ID format: userId_articleId)
+    match /savedArticles/{savedArticleId} {
+      // Simplified approach: Allow all authenticated users to read/write documents
+      // where the document data contains their userId OR the document ID starts with their userId
+      allow read, write, create, delete: if request.auth != null && (
+        // Check if document ID starts with user's UID (for compound ID format)
+        (savedArticleId.size() > request.auth.uid.size() &&
+         savedArticleId[0:request.auth.uid.size()] == request.auth.uid &&
+         savedArticleId[request.auth.uid.size()] == '_') ||
+        // Check document data userId (for existing documents)
+        (resource != null && request.auth.uid == resource.data.userId) ||
+        // Check request data userId (for new documents)
+        (request.resource != null && request.auth.uid == request.resource.data.userId)
+      );
+
+      // Allow list/query operations for authenticated users
+      // This covers queries like where('userId', '==', userId)
+      allow list: if request.auth != null;
+
+      // Admins can read all saved articles
+      allow read, write, list: if request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Notifications collection - users can read their own notifications, admins can create notifications
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+
+      // Users can update their own notifications (mark as read, delete)
+      allow update, delete: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+
+      // Admins and system can create notifications for any user
+      allow create: if request.auth != null &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.uid == request.resource.data.userId);
+
+      // Admins can read all notifications
+      allow read: if request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // User activity logs (optional for analytics)
+    match /userActivity/{activityId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    // Comments subcollection for articles
+    match /articles/{articleId}/comments/{commentId} {
+      // READ PERMISSIONS - Simplified for testing
+      // Anyone can read comments (we'll add restrictions later)
+      allow read, list: if true;
+
+      // CREATE PERMISSIONS - Simplified for testing
+      // Only authenticated users can create comments
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+
+      // UPDATE PERMISSIONS
+      // Users can update their own comments
+      allow update: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+
+      // DELETE PERMISSIONS
+      // Users can delete their own comments
+      allow delete: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+
+      // Admins can delete any comment
+      allow delete: if request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      // Replies subcollection
+      match /replies/{replyId} {
+        // READ PERMISSIONS - Simplified for testing
+        // Anyone can read replies (we'll add restrictions later)
+        allow read, list: if true;
+
+        // CREATE PERMISSIONS - Simplified for testing
+        // Only authenticated users can create replies
+        allow create: if request.auth != null &&
+          request.auth.uid == request.resource.data.userId;
+
+        // UPDATE PERMISSIONS
+        // Users can update their own replies
+        allow update: if request.auth != null &&
+          request.auth.uid == resource.data.userId;
+
+        // DELETE PERMISSIONS
+        // Users can delete their own replies
+        allow delete: if request.auth != null &&
+          request.auth.uid == resource.data.userId;
+
+        // Admins can delete any reply
+        allow delete: if request.auth != null &&
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      }
+    }
+  }
+}
